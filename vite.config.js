@@ -1,28 +1,8 @@
 import { defineConfig } from 'vite';
-
-// Minimal plugin that transforms SVG imports with ?component query into JS modules
-// (simulates what vite-plugin-svgr does with ?react)
-function svgComponentPlugin() {
-  return {
-    name: 'svg-component',
-    resolveId(source, importer) {
-      if (source.endsWith('.svg?component')) {
-        return source; // keep the query string in the module ID
-      }
-    },
-    load(id) {
-      if (id.endsWith('.svg?component')) {
-        return {
-          code: `export default function SvgIcon() { return '<svg></svg>'; }`,
-          moduleType: 'js',
-        };
-      }
-    },
-  };
-}
+import svgr from 'vite-plugin-svgr';
 
 export default defineConfig({
-  plugins: [svgComponentPlugin()],
+  plugins: [svgr()],
   build: {
     lib: {
       entry: { index: './src/index.js' },
@@ -33,6 +13,7 @@ export default defineConfig({
       },
     },
     rollupOptions: {
+      external: ['react', 'react/jsx-runtime'],
       output: {
         preserveModules: true,
         preserveModulesRoot: 'src',

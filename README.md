@@ -1,54 +1,40 @@
 # Bug: `preserveModules` doesn't strip query strings from module IDs
 
+When using `preserveModules: true` with plugins that add query strings to module IDs
+(e.g., `vite-plugin-svgr` adds `?react`), Rolldown passes the raw query string through
+to the `fileName` / `entryFileNames` callback and into the output filename.
+
+Rollup explicitly strips query strings via `module.id.split(/[#?]/, 1)[0]` in
+[`getPreserveModulesChunkNameFromModule`](https://github.com/rollup/rollup/blob/main/src/Chunk.ts#L1147-L1171).
+
 ## Reproduction
 
 ```bash
 npm install
-npx vite build        # Uses Rolldown (Vite 8)
-npx rollup -c rollup.config.js  # Uses Rollup for comparison
+npx vite build
 ```
 
-## Expected behavior (Rollup)
+## Expected behavior
 
-Rollup strips query strings from module IDs before passing them to `entryFileNames` callbacks,
-via `module.id.split(/[#?]/, 1)[0]` in `getPreserveModulesChunkNameFromModule` ([source](https://github.com/rollup/rollup/blob/main/src/Chunk.ts#L1147-L1171)).
-
-```
-[entryFileNames callback] {"name":"index"}
-[entryFileNames callback] {"name":"_virtual/icon.svg"}    ← query stripped
-[entryFileNames callback] {"name":"greeting"}
-```
-
-Output files:
-```
-dist-rollup/
-  _virtual/icon.svg.js   ✅ valid filename
-  greeting.js
-  index.js
-```
-
-## Actual behavior (Rolldown / Vite 8)
-
-Rolldown passes the raw module ID, including query strings, to the `fileName` callback:
+The `fileName` callback should receive `entryName` without query strings, matching Rollup's behavior:
 
 ```
-[fileName callback] {"format":"es","entryName":"index"}
-[fileName callback] {"format":"es","entryName":"icon.svg?component"}    ← query NOT stripped
-[fileName callback] {"format":"es","entryName":"greeting"}
+[fileName callback] {"format":"es","entryName":"icon.svg"}    ← query stripped
+```
+
+## Actual behavior
+
+```
+[fileName callback] {"format":"es","entryName":"icon.svg?react"}    ← query NOT stripped
 ```
 
 Output files:
 ```
 dist/
-  icon.svg?component.js   ❌ broken filename (literal ? in path)
+  icon.svg?react.js   ← literal ? in filename
   greeting.js
   index.js
 ```
-
-## Impact
-
-This affects any library build using `preserveModules: true` with plugins that add query
-strings to module IDs (e.g., `vite-plugin-svgr` with `?react`, raw imports with `?raw`).
 
 The `?` character in filenames is invalid on Windows and problematic on most systems.
 
@@ -56,4 +42,4 @@ The `?` character in filenames is invalid on Windows and problematic on most sys
 
 - vite: 8.0.0
 - rolldown: 1.0.0-rc.9 (bundled with vite 8.0.0)
-- rollup: 4.x (for comparison)
+- vite-plugin-svgr: 4.5.0
