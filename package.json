@@ -1,0 +1,14 @@
+{
+  "name": "rolldown-query-string-bug",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "vite": "^8.0.0"
+  },
+  "dependencies": {
+    "rollup": "^4.59.0"
+  }
+}
